@@ -1,0 +1,35 @@
+chassis:
+  offset: [-0.1, 0.0, -0.035]
+  width: 0.325
+  height: 0.15
+  length: 0.55
+  mass: 10
+
+mower:
+  offset: [0.18, 0.0, -0.05]
+  cut_radius: 0.065
+  thickness: 0.01
+  mass: 0.2
+
+wheel:
+  offset: [0, 0.16, 0]
+  mass: 0.2
+  radius: 0.0925
+  thickness: 0.04
+  velocity:
+    max: 1.0
+    min: -1.0
+  gear_ratio: 0.027027027027027
+
+caster_wheel:
+  offset: [0.35, 0.1]
+  radius: 0.05
+  mass: 0.05
+
+gps:
+  antenna:
+    offset: [0.32, 0.0, 0.1]
+
+imu:
+  chip:
+    offset: [0.0, 0.0, 0.0]

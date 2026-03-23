@@ -1,0 +1,16 @@
+# minimal placeholder config so launch file can load it
+
+hardware:
+  use_simulation: true
+
+localization:
+  use_gps: true
+  use_imu: true
+
+navigation:
+  planner_frequency: 5.0
+  controller_frequency: 10.0
+
+robot:
+  wheel_base: 0.35
+  max_speed: 0.6

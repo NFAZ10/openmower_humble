@@ -1,0 +1,9 @@
+services:
+  openmower_ui_humble:
+    build:
+      context: ./openmower-ui
+      dockerfile: Dockerfile
+    container_name: openmower_ui_humble
+    restart: unless-stopped
+    ports:
+      - "${OPENMOWER_UI_PORT:-9091}:9090"

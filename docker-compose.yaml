@@ -1,0 +1,92 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: openmower_mqtt_humble
+    restart: unless-stopped
+    ports:
+      - "${OM_MQTT_PORT:-1884}:1883"
+      - "${OM_MQTT_WS_PORT:-9001}:9001"
+    volumes:
+      - ./mosquitto:/mosquitto
+
+  open_mower_humble:
+    image: openmower-humble:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: ${ROS_DISTRO:-humble}
+        OPENMOWERNEXT_REPO: ${OM_UPSTREAM_REPO:-https://github.com/NFAZ10/openmowernext.git}
+        OPENMOWERNEXT_REF: ${OM_UPSTREAM_REF:-3eb9edb2f8d29f5e28fdf242de78332c192d787a}
+    container_name: open_mower_humble
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-0}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}
+      OM_CONFIG_DIR: /config
+      OM_HARDWARE_CONFIG: /config/hardware/yardforce500.yaml
+      OM_CONTROLLERS_CONFIG: /config/controllers.yaml
+      OM_GPS_PARAMS: /config/gps.yaml
+      OM_LOCALIZATION_PARAMS: /config/robot_localization.yaml
+      OM_NAV2_PARAMS: /config/nav2_params.yaml
+      OM_TWIST_MUX_CONFIG: /config/twist_mux.yaml
+      OM_USE_EXTERNAL_HARDWARE: ${OM_USE_EXTERNAL_HARDWARE:-true}
+      OM_EXTERNAL_CMD_VEL_TOPIC: ${OM_EXTERNAL_CMD_VEL_TOPIC:-/cmd_vel}
+      OM_ENABLE_FOXGLOVE: ${OM_ENABLE_FOXGLOVE:-false}
+      OM_USE_SIM_TIME: ${OM_USE_SIM_TIME:-false}
+      OM_AUTOSTART: ${OM_AUTOSTART:-true}
+      OM_DATUM_LAT: ${OM_DATUM_LAT:-30.0}
+      OM_DATUM_LONG: ${OM_DATUM_LONG:-0.5}
+      OM_MAP_PATH: /data/map.json
+      OM_NTRIP_ENABLED: ${OM_NTRIP_ENABLED:-false}
+      OM_NTRIP_HOSTNAME: ${OM_NTRIP_HOSTNAME:-}
+      OM_NTRIP_PORT: ${OM_NTRIP_PORT:-2101}
+      OM_NTRIP_ENDPOINT: ${OM_NTRIP_ENDPOINT:-}
+      OM_NTRIP_AUTHENTICATE: ${OM_NTRIP_AUTHENTICATE:-false}
+      OM_NTRIP_USER: ${OM_NTRIP_USER:-}
+      OM_NTRIP_PASSWORD: ${OM_NTRIP_PASSWORD:-}
+      MQTT_HOST: 127.0.0.1
+      MQTT_PORT: ${OM_MQTT_PORT:-1884}
+    volumes:
+      - ./openmower-config/humble:/config:ro
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+
+  openmower_ui_bridge_humble:
+    image: openmower-humble:local
+    container_name: openmower_ui_bridge_humble
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - open_mower_humble
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-0}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}
+      MQTT_HOST: 127.0.0.1
+      MQTT_PORT: ${OM_MQTT_PORT:-1884}
+      OM_MAP_PATH: /data/map.json
+      OM_UI_BRIDGE_WS_PORT: ${OM_UI_BRIDGE_WS_PORT:-9002}
+      OM_UI_BRIDGE_ODOM_TOPIC: ${OM_UI_BRIDGE_ODOM_TOPIC:-/odometry/filtered}
+      OM_UI_BRIDGE_MAP_TOPIC: ${OM_UI_BRIDGE_MAP_TOPIC:-/mowing_map}
+      OM_UI_BRIDGE_CHARGER_TOPIC: ${OM_UI_BRIDGE_CHARGER_TOPIC:-/power/charger_present}
+      OM_UI_BRIDGE_BATTERY_TOPIC: ${OM_UI_BRIDGE_BATTERY_TOPIC:-/power}
+      OM_UI_BRIDGE_MODE_TOPIC: ${OM_UI_BRIDGE_MODE_TOPIC:-/robot_mode}
+      OM_UI_BRIDGE_MODE_CMD_TOPIC: ${OM_UI_BRIDGE_MODE_CMD_TOPIC:-/robot_mode_cmd}
+      OM_UI_BRIDGE_TELEOP_TOPIC: ${OM_UI_BRIDGE_TELEOP_TOPIC:-/cmd_vel_joy}
+      OM_UI_BRIDGE_MOW_STRIPE_SPACING: ${OM_UI_BRIDGE_MOW_STRIPE_SPACING:-0.4}
+      OM_UI_BRIDGE_MOW_BOUNDARY_MARGIN: ${OM_UI_BRIDGE_MOW_BOUNDARY_MARGIN:-0.15}
+      OM_UI_BRIDGE_MOW_WAYPOINT_TOLERANCE: ${OM_UI_BRIDGE_MOW_WAYPOINT_TOLERANCE:-0.35}
+      OM_UI_BRIDGE_VERSION: ${OM_UI_BRIDGE_VERSION:-openmower-humble}
+    command: ["python3", "/usr/local/bin/openmower-ui-bridge.py"]
+    volumes:
+      - ./scripts/openmower-ui-bridge.py:/usr/local/bin/openmower-ui-bridge.py:ro
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro

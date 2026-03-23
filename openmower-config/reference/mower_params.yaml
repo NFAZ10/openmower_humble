@@ -1,0 +1,17 @@
+# minimal placeholder mower params
+
+mower:
+  cut_diameter: 0.3
+  max_velocity: 0.6
+  max_angular_velocity: 1.0
+
+robot:
+  wheel_base: 0.35
+  wheel_radius: 0.1
+
+sensors:
+  use_gps: true
+  use_imu: true
+  use_lidar: true
+gps:
+  enable_ntrip: false
