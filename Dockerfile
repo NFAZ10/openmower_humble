@@ -51,7 +51,7 @@ RUN source /opt/ros/${ROS_DISTRO}/setup.bash \
     && cd "${WORKSPACE}" \
     && apt-get update \
     && rosdep install --from-paths src --ignore-src --rosdistro "${ROS_DISTRO}" \
-         --skip-keys="vesc_hw_interface gz_ros2_control ros_gz ros_gz_sim" \
+         --skip-keys="vesc_hw_interface gz_ros2_control ros_gz ros_gz_sim foxglove_bridge" \
          -r -y \
     && rm -rf /var/lib/apt/lists/*
 
