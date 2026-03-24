@@ -57,6 +57,31 @@ services:
       - ./data:/data
       - /etc/localtime:/etc/localtime:ro
 
+  mower_logic_humble:
+    image: openmower-humble:local
+    container_name: mower_logic_humble
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - open_mower_humble
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: ${ROS_LOCALHOST_ONLY:-0}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      FASTDDS_BUILTIN_TRANSPORTS: ${FASTDDS_BUILTIN_TRANSPORTS:-UDPv4}
+      OM_MODE_TOPIC: ${OM_UI_BRIDGE_MODE_TOPIC:-/robot_mode}
+      OM_MODE_CMD_TOPIC: ${OM_UI_BRIDGE_MODE_CMD_TOPIC:-/robot_mode_cmd}
+      OM_CHARGER_TOPIC: ${OM_UI_BRIDGE_CHARGER_TOPIC:-/power/charger_present}
+      OM_BATTERY_TOPIC: ${OM_UI_BRIDGE_BATTERY_TOPIC:-/power}
+      OM_BLADE_TOPIC: ${OM_BLADE_TOPIC:-/mower_controller/commands}
+      OM_BLADE_ENABLED: ${OM_BLADE_ENABLED:-true}
+      OM_BLADE_SPEED: ${OM_BLADE_SPEED:-1.0}
+      OM_BATTERY_LOW_THRESHOLD: ${OM_BATTERY_LOW_THRESHOLD:-20.0}
+    command: ["python3", "/usr/local/bin/mower_logic_node.py"]
+    volumes:
+      - ./scripts/mower_logic_node.py:/usr/local/bin/mower_logic_node.py:ro
+      - /etc/localtime:/etc/localtime:ro
+
   openmower_ui_bridge_humble:
     image: openmower-humble:local
     container_name: openmower_ui_bridge_humble

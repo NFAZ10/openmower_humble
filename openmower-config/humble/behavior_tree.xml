@@ -1,26 +1,53 @@
 <!--
-  This Behavior Tree computes a complete coverage path over a selected space, then follows it.
-  Can also take the coverage_path instead of Nav Path for segmented swaths from turns
-  for changes in operational modes (e.g. raise tool, turn off payload in turns not in field).
+  Behavior Tree for NavigateCompleteCoverage (opennav_coverage).
 
-  Field filepath is set by the Navigator plugin in the action request, but also may be hardcoded
-  or set using the polygons input port instead for dynamically computed values instead of from file.
+  NOTE: This BT requires the opennav_coverage package to be installed in the Docker image.
+  Add it to custom_deps.yaml and rebuild if you want BT-driven coverage navigation.
+  The default UI bridge path uses NavigateThroughPoses with its own boustrophedon planner
+  and does NOT use this BT — it is provided for future opennav_coverage integration.
 
-  It might be wise to still have the planner server on hand to connect to the coverage path in realistic uses.
-
-  This BT shows set polygon usage with the coverage server
+  Original stub by Jakub Kaflik (openmowernext). Proper recovery structure ported from
+  open_mower_ros (Clemens Elflein) and Nav2 standard patterns.
 -->
 
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
     <BehaviorTree ID="MainTree">
-        <RateController hz="0.0000001"> <!-- once, for demo -->
-            <Sequence name="NavigateWithoutReplanning">
-                <!-- May use:
-                 'polygons="{field_polygon}" polygons_frame_id="{polygon_frame_id}"' if set polygon via NavigateCompleteCoverage
-                 or file_field="{field_filepath}" if setting polygon file via NavigateCompleteCoverage -->
-                <ComputeCoveragePath nav_path="{path}" polygons="{field_polygon}" polygons_frame_id="{polygon_frame_id}" error_code_id="{compute_coverage_error_code}"/>
-                <FollowPath path="{path}" controller_id="FollowPath" error_code_id="{follow_path_error_code}"/>
-            </Sequence>
-        </RateController>
+        <RecoveryNode number_of_retries="6" name="CoverageWithRecovery">
+
+            <PipelineSequence name="CoverageNavigate">
+                <!-- Recompute path at 1 Hz to allow dynamic polygon updates -->
+                <RateController hz="1.0">
+                    <ComputeCoveragePath
+                        nav_path="{path}"
+                        polygons="{field_polygon}"
+                        polygons_frame_id="{polygon_frame_id}"
+                        error_code_id="{coverage_error_code}"/>
+                </RateController>
+                <FollowPath
+                    path="{path}"
+                    controller_id="FollowPath"
+                    error_code_id="{follow_path_error_code}"/>
+            </PipelineSequence>
+
+            <!-- Recovery sequence: clear costmaps → back up → spin → wait -->
+            <ReactiveFallback name="RecoveryFallback">
+                <GoalUpdated/>
+                <RoundRobin name="RecoveryActions">
+                    <Sequence name="ClearingActions">
+                        <ClearEntireCostmap name="ClearLocal"
+                            service_name="local_costmap/clear_entirely_local_costmap"/>
+                        <ClearEntireCostmap name="ClearGlobal"
+                            service_name="global_costmap/clear_entirely_global_costmap"/>
+                    </Sequence>
+                    <BackUp backup_dist="0.15" backup_speed="0.025"
+                        error_code_id="{backup_error_code}"/>
+                    <Spin spin_dist="1.57"
+                        error_code_id="{spin_error_code}"/>
+                    <Wait wait_duration="5.0"/>
+                </RoundRobin>
+            </ReactiveFallback>
+
+        </RecoveryNode>
     </BehaviorTree>
 </root>
+
